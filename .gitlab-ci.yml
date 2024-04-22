@@ -1,0 +1,68 @@
+stages:
+  - test_and_validate
+  - plan
+  - apply
+
+variables:
+  TF_VERSION: "1.5.0"
+
+tfsec:
+  stage: test_and_validate
+  image: docker:stable
+  services:
+    - docker:dind
+  script:
+    - apk add --no-cache curl
+    - curl -sSLo tfsec https://github.com/tfsec/tfsec/releases/latest/download/tfsec-linux-amd64
+    - chmod +x tfsec
+    - ./tfsec
+  only:
+    - master
+
+tflint:
+  stage: test_and_validate
+  image: docker:stable
+  services:
+    - docker:dind
+  script:
+    - apk add --no-cache curl
+    - curl -sSLo tflint.zip https://github.com/terraform-linters/tflint/releases/download/v0.31.0/tflint_linux_amd64.zip
+    - unzip tflint.zip
+    - chmod +x tflint
+    - ./tflint
+  only:
+    - master
+
+plan:
+  stage: plan
+  image:
+    name: hashicorp/terraform:$TF_VERSION
+    entrypoint: [""]
+  script:
+    - terraform --version
+    - terraform init
+    - terraform plan -out=tfplan -input=false
+    - terraform show -json tfplan > tfplan.json
+  artifacts:
+    paths:
+      - tfplan.json
+  only:
+    - master
+
+apply:
+  stage: apply
+  needs:
+    - artifacts: true
+      job: plan
+  image:
+    name: hashicorp/terraform:$TF_VERSION
+    entrypoint: [""]
+  script:
+    - terraform --version
+    - terraform apply -input=false tfplan
+  environment:
+    name: production
+  when: manual
+  allow_failure: false
+  only:
+    - master
