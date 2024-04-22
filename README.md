@@ -15,7 +15,7 @@ Before you begin, make sure you have the following installed/configured:
 
 1. Clone this repository:
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/Prashanna313/gcs-static-website.git
     ```
 
 2. Navigate to the project directory:
